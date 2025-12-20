@@ -2,13 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDjusbe810AzufaLf0cnatY-Mk2vdb23y0",
-  authDomain: "cryptox-f55b0.firebaseapp.com",
-  projectId: "cryptox-f55b0",
-  storageBucket: "cryptox-f55b0.firebasestorage.app",
-  messagingSenderId: "935668500484",
-  appId: "1:935668500484:web:b3c6564ad729f5f3258d51",
-  measurementId: "G-2MV3QG0QM4"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
 // Initialize Firebase
