@@ -6,6 +6,33 @@ A production-ready, full-stack cryptocurrency dashboard featuring real-time mark
 [![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)](./coverage)
 [![Performance](https://img.shields.io/badge/lighthouse-95%2B-brightgreen.svg)](./lighthouse-report.html)
 
+## 🔁 Recent Changes (Dec 2025)
+
+- Removed committed secrets from the repository and switched to environment variables for all secrets (Firebase, Supabase, API keys). See `.env.example` for sanitized examples.
+- Stopped committing `frontend-react/dist/` and added it to `.gitignore` (build artifacts are no longer tracked).
+- Root TypeScript configuration now excludes the `frontend-react` package to avoid cross-project typechecking issues. If you run `npm run typecheck` at the repository root it will no longer validate the React app sources.
+- CI workflows updated to use environment secrets and explicit build envs (ensure required secrets are set in repository settings).
+
+## ⚠️ CI Troubleshooting
+
+- Symptom: GitHub Actions `lint-and-typecheck` or other CI jobs fail with many TypeScript errors originating from `frontend-react/src/*` when running the root `typecheck` script.
+- Cause: The root `tsconfig.json` previously used `moduleResolution: "nodenext"` and did not exclude the `frontend-react` package, so `tsc` run at the repo root attempted to type-check frontend files configured for Vite (a different tsconfig), producing numerous errors (missing `import.meta.env` types, file-extension errors, DOM type mismatches).
+- Quick Fix (applied in repo): root `tsconfig.json` now excludes `frontend-react`. This prevents cross-project typechecking and resolves the failing `npm run typecheck` at the root.
+- CI Secrets & Env required by workflows:
+  - `MONGODB_URI_TEST`, `MONGODB_URI_PROD`
+  - `CMC_API_KEY`, `FREE_CURRENCY_API_KEY`, `MARKETAUX_API_KEY`, `GEMINI_API_KEY`
+  - `VITE_API_BASE_URL` (for frontend build)
+  - `CODECOV_TOKEN` (only required for private repos when uploading coverage)
+  - `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RAILWAY_TOKEN`, `LHCI_GITHUB_APP_TOKEN` (optional, used only if deployment/benchmarks run)
+- How to reproduce CI locally:
+  1. Install deps: `npm install` and `cd frontend-react && npm install`
+  2. From repo root run: `npm run lint && npm run typecheck` (this should now succeed after the tsconfig change)
+  3. Run backend tests: `npm run test:backend`
+  4. Run frontend tests: `cd frontend-react && npm test`
+- Suggested long-term improvements:
+  - Use a monorepo tool or separate CI commands that call `tsc -p frontend-react/tsconfig.json` and `tsc -p ./` explicitly to avoid accidental cross-checking.
+  - Ensure required secrets are configured in GitHub repository secrets for CI jobs that need them.
+
 ## 📚 Documentation Notes
 - All supplemental markdown docs are consolidated into this README to keep documentation single-sourced.
 - Use `docs_archive/` (gitignored) for local-only notes or retired docs you do not want committed.
