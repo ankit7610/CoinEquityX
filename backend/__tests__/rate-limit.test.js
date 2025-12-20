@@ -1,6 +1,6 @@
 const { test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { createAppServer } = require('../server');
+const { createAppServer, closeMongoClient } = require('../server');
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -42,8 +42,9 @@ beforeEach(async () => {
   ctx = await startServer();
 });
 
-afterEach(() => {
+afterEach(async () => {
   ctx?.server?.close();
+  await closeMongoClient();
 });
 
 test('rate limiter returns 429 after limit exceeded', async () => {

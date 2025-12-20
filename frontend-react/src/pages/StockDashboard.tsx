@@ -735,7 +735,7 @@ function StockPriceChart({ stock, quote, currency, fxRates }: { stock: Stock | n
       '90d': { points: 60, labels: Array.from({length: 7}, (_, i) => i === 6 ? 'Now' : `${90-i*15}d ago`), change, primaryWave: 0.06, secondaryWave: 0.03 },
     }[timeRange];
     
-    const data = [];
+    const data: any[] = [];
     for (let i = 0; i < config.points; i++) {
       const progress = i / (config.points - 1);
       const wave1 = Math.sin(i * config.primaryWave) * 2;
@@ -856,8 +856,8 @@ function StockPriceChart({ stock, quote, currency, fxRates }: { stock: Stock | n
             />
             {chartData.length > 0 && (
               <ReferenceDot
-                x={chartData[chartData.length - 1].time}
-                y={chartData[chartData.length - 1].price}
+                x={(chartData[chartData.length - 1] as any).time}
+                y={(chartData[chartData.length - 1] as any).price}
                 r={8}
                 fill={lineColor}
                 stroke="#fff"

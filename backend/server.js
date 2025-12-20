@@ -402,7 +402,7 @@ function loadEnv(env = process.env) {
     const [key, ...rest] = trimmed.split('=');
     if (key && rest.length) {
       const value = rest.join('=');
-      if (!env[key]) {
+      if (env[key] === undefined) {
         env[key] = value;
       }
     }
@@ -521,6 +521,14 @@ async function writeStockPortfolio(config, entries, userId) {
   return entries;
 }
 
+async function closeMongoClient() {
+  if (mongoClientPromise) {
+    const client = await mongoClientPromise;
+    await client.close();
+    mongoClientPromise = null;
+  }
+}
+
 function createRateLimiter({ limit = 60, windowMs = 10 * 60 * 1000 } = {}) {
   const buckets = new Map();
   return (ip) => {
@@ -550,4 +558,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createAppServer, sanitizePath };
+module.exports = { createAppServer, sanitizePath, closeMongoClient };

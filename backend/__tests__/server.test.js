@@ -1,6 +1,6 @@
 const { test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { createAppServer } = require('../server');
+const { createAppServer, closeMongoClient } = require('../server');
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -62,7 +62,8 @@ async function startServer(overrides = {}) {
       CMC_API_KEY: 'test-key',
       FREE_CURRENCY_API_KEY: 'fx-key',
       MARKETAUX_API_KEY: 'news-key',
-      GEMINI_API_KEY: 'gemini-key'
+      GEMINI_API_KEY: 'gemini-key',
+      MONGODB_URI: '' // Explicitly disable for tests
     },
     fetchImpl: overrides.fetchImpl || createMockFetch()
   });
@@ -78,8 +79,9 @@ beforeEach(async () => {
   context = await startServer();
 });
 
-afterEach(() => {
+afterEach(async () => {
   if (context?.server) context.server.close();
+  await closeMongoClient();
 });
 
 test('serves the SPA index', async () => {
