@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Pulse | Clean Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">₿</div>
+        <div>
+          <p class="eyebrow">Crypto Pulse</p>
+          <h1>Markets · Categories · Portfolio</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="search">
+          <span>🔍</span>
+          <input id="search-input" type="search" placeholder="Search coin or symbol" aria-label="Search coins">
+        </div>
+        <select id="currency-select" class="sort-select" aria-label="Select currency">
+          <option value="INR" selected>INR</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="JPY">JPY</option>
+          <option value="AUD">AUD</option>
+          <option value="CAD">CAD</option>
+          <option value="CHF">CHF</option>
+        </select>
+        <select id="sort-select" class="sort-select" aria-label="Sort coins">
+          <option value="market_cap_desc">Market Cap ↓</option>
+          <option value="market_cap_asc">Market Cap ↑</option>
+          <option value="price_desc">Price ↓</option>
+          <option value="price_asc">Price ↑</option>
+          <option value="change24_desc">24h Change ↓</option>
+          <option value="change24_asc">24h Change ↑</option>
+          <option value="change7_desc">7d Change ↓</option>
+          <option value="change7_asc">7d Change ↑</option>
+          <option value="name_asc">Name A→Z</option>
+          <option value="name_desc">Name Z→A</option>
+        </select>
+        <button id="theme-toggle" class="ghost-btn" aria-label="Toggle theme">🌙</button>
+        <button id="refresh-btn" class="ghost-btn">Refresh</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="dashboard-view">Dashboard</button>
+      <button class="tab-btn" data-view="categories-view">Categories</button>
+      <button class="tab-btn" data-view="portfolio-view">Portfolio</button>
+      <button class="tab-btn" data-view="news-view">News</button>
+    </nav>
+
+    <main>
+      <section id="dashboard-view" class="view active">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Market Overview</h2>
+              <p class="muted">Click any card for detailed analysis</p>
+            </div>
+            <div class="filters">
+              <button class="pill filter-chip active" data-category="all">All</button>
+              <button class="pill filter-chip" data-category="stable">Stable</button>
+              <button class="pill filter-chip" data-category="layer1">Layer 1</button>
+              <button class="pill filter-chip" data-category="alt">Alt</button>
+            </div>
+          </div>
+          <div id="coins-list" class="coins-grid"></div>
+          <div class="pagination">
+            <button id="prev-btn" class="pagination-btn">← Previous</button>
+            <span id="page-info" class="pagination-info">Page 1</span>
+            <button id="next-btn" class="pagination-btn">Next →</button>
+          </div>
+        </article>
+      </section>
+
+
+      <section id="portfolio-view" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>📊 Portfolio</h2>
+            <p class="muted">Track your holdings locally.</p>
+          </div>
+          <div class="portfolio-layout">
+            <div class="portfolio-form-card">
+              <h3 class="form-title">Add / Edit Position</h3>
+              <form id="portfolio-form" class="portfolio-form">
+                <input type="hidden" id="edit-id" value="">
+                <label>
+                  <span>Coin</span>
+                  <input id="coin-input" name="coin" list="coin-options" placeholder="e.g., Bitcoin or BTC" required autocomplete="off">
+                  <datalist id="coin-options"></datalist>
+                </label>
+                <label>
+                  <span>Quantity</span>
+                  <input id="quantity-input" name="quantity" type="number" min="0" step="any" required placeholder="0.5">
+                </label>
+                <label>
+                  <span>Cost basis per coin (optional)</span>
+                  <input id="cost-input" name="cost" type="number" min="0" step="any" placeholder="Enter buy price">
+                </label>
+                <div class="form-actions">
+                  <button type="submit" class="primary-btn">Save position</button>
+                  <button type="button" class="ghost-btn" id="reset-form-btn">Clear</button>
+                </div>
+              </form>
+            </div>
+            <div class="portfolio-info-card">
+              <h3 class="form-title">Your Holdings</h3>
+              <div id="portfolio-summary" class="portfolio-summary"></div>
+              <div id="portfolio-list" class="portfolio-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="categories-view" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>📦 Categories</h2>
+            <p class="muted">From CoinMarketCap categories API.</p>
+          </div>
+          <div class="table-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Num Coins</th>
+                  <th>Market Cap</th>
+                  <th>Volume 24h</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="categories-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="news-view" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>📰 Latest News</h2>
+            <p class="muted">Breaking news headlines (1h cache)</p>
+          </div>
+          <ul id="news-list" class="news-list"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <template id="coin-card-template">
+    <div class="crypto-card">
+      <div class="card-header">
+        <div class="card-icon">₿</div>
+        <div class="card-title">
+          <strong class="coin-symbol">BTC</strong>
+          <span class="coin-name">Bitcoin</span>
+        </div>
+      </div>
+      <div class="card-price-section">
+        <div class="card-price">$0.00</div>
+        <div class="card-change change-24h">+0%</div>
+      </div>
+      <div class="card-chart">
+        <canvas width="200" height="60"></canvas>
+      </div>
+      <div class="card-footer">
+        <div class="card-stat">
+          <span class="stat-label">Cap</span>
+          <span class="stat-value">$0</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-label">Vol</span>
+          <span class="stat-value">$0</span>
+        </div>
+        <button class="card-action ghost-btn">Add</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="coin-row-template">
+    <tr class="coin-row">
+      <td class="rank"></td>
+      <td>
+        <div class="name-cell">
+          <div class="avatar-circle">₿</div>
+          <div>
+            <strong class="symbol"></strong>
+            <p class="fullname"></p>
+          </div>
+        </div>
+      </td>
+      <td class="price"></td>
+      <td class="change change-24h"></td>
+      <td class="spark-cell"><canvas width="120" height="36"></canvas></td>
+      <td class="cap"></td>
+      <td class="volume"></td>
+      <td><button class="ghost-btn add-btn" type="button">Add</button></td>
+    </tr>
+  </template>
+
+  <template id="category-row-template">
+    <tr>
+      <td class="cat-name"></td>
+      <td class="cat-count"></td>
+      <td class="cat-cap"></td>
+      <td class="cat-vol"></td>
+      <td><button class="ghost-btn cat-open" type="button">View</button></td>
+    </tr>
+  </template>
+
+  <script src="/js/main.js" type="module"></script>
+</body>
+</html>
