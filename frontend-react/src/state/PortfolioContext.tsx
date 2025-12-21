@@ -17,7 +17,7 @@ type PortfolioContextValue = {
 const PortfolioContext = createContext<PortfolioContextValue | undefined>(undefined);
 
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [entries, setEntries] = useState<PortfolioEntry[]>([]);
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     const saved = localStorage.getItem('currency');
@@ -26,8 +26,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [fxRates, setFxRates] = useState<Record<string, number>>({ USD: 1 });
 
   useEffect(() => {
+    if (loading) return;
     refresh();
-  }, [user]);
+  }, [user, loading]);
 
   useEffect(() => {
     localStorage.setItem('currency', currency);

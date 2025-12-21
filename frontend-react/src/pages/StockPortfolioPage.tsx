@@ -288,7 +288,7 @@ function computeTotals(entries: StockPortfolioEntry[], quotes: Record<string, St
 }
 
 export default function StockPortfolioPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { currency, fxRates } = usePortfolio();
   const queryClient = useQueryClient();
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
@@ -304,7 +304,7 @@ export default function StockPortfolioPage() {
   const { data: portfolioData } = useQuery({
     queryKey: ['stockPortfolio', user?.uid],
     queryFn: () => getStockPortfolio(user?.uid),
-    enabled: !!user?.uid,
+    enabled: !loading && !!user?.uid,
   });
   const entries = portfolioData?.data || [];
 
