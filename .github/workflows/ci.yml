@@ -299,16 +299,16 @@ jobs:
           working-directory: frontend-react
 
       - name: Deploy backend to Railway
-        uses: bervProject/railway-deploy@v1
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
+        uses: bervProject/railway-deploy@main
         env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           MONGODB_URI: ${{ secrets.MONGODB_URI_PROD }}
           CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
           FREE_CURRENCY_API_KEY: ${{ secrets.FREE_CURRENCY_API_KEY }}
           MARKETAUX_API_KEY: ${{ secrets.MARKETAUX_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          service: backend
 
       - name: Notify deployment success
         if: success()
