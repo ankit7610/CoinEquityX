@@ -9,6 +9,7 @@ import { PortfolioProvider } from '../state/PortfolioContext';
 
 // Mock Firebase
 vi.mock('../firebase', () => ({
+  firebaseReady: true,
   auth: {
     currentUser: null,
     onAuthStateChanged: vi.fn((callback) => {

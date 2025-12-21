@@ -32,7 +32,13 @@ async function startServer(envOverrides = {}) {
     },
     fetchImpl: createMockFetch()
   });
-  await new Promise((resolve) => server.listen(0, resolve));
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
   const port = server.address().port;
   return { server, base: `http://127.0.0.1:${port}` };
 }

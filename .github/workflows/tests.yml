@@ -14,10 +14,31 @@ jobs:
           node-version: 18
       - run: npm install
       - run: npm test
+      - name: Install frontend dependencies
+        working-directory: frontend-react
+        run: npm install
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      - name: Playwright E2E
-        run: npm run test:e2e
+        working-directory: frontend-react
+        run: npx playwright install --with-deps chromium
+      - name: Start backend server
+        run: |
+          npm start &
+          sleep 10
         env:
-          E2E_BASE_URL: http://localhost:3000
+          PORT: 3000
+          CMC_API_KEY: test-key
+          FREE_CURRENCY_API_KEY: test-key
+          MARKETAUX_API_KEY: test-key
+          GEMINI_API_KEY: test-key
+          FINNHUB_API_KEY: test-key
+      - name: Start frontend dev server
+        working-directory: frontend-react
+        run: |
+          npm run dev -- --host 0.0.0.0 --port 5173 &
+          sleep 15
+      - name: Playwright E2E
+        working-directory: frontend-react
+        run: npx playwright test --project=chromium
+        env:
+          E2E_BASE_URL: http://localhost:5173
         timeout-minutes: 10

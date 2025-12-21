@@ -9,12 +9,13 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, firebaseReady } from '../firebase';
 import { createUserProfile, getUserProfile } from '../supabase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authReady: boolean;
   signup: (
     email: string,
     password: string,
@@ -48,6 +49,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const authReady = firebaseReady && !!auth;
 
   useEffect(() => {
     // Check for test bypass
@@ -75,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -98,6 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dob?: string,
     mobile?: string
   ) => {
+    if (!authReady || !auth) {
+      throw new Error('Firebase auth is not configured. Set VITE_FIREBASE_* in frontend-react/.env and restart the dev server.');
+    }
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
     
@@ -126,14 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
+    if (!authReady || !auth) {
+      throw new Error('Firebase auth is not configured. Set VITE_FIREBASE_* in frontend-react/.env and restart the dev server.');
+    }
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
+    if (!authReady || !auth) {
+      throw new Error('Firebase auth is not configured. Set VITE_FIREBASE_* in frontend-react/.env and restart the dev server.');
+    }
     await signOut(auth);
   };
 
   const loginWithGoogle = async () => {
+    if (!authReady || !auth) {
+      throw new Error('Firebase auth is not configured. Set VITE_FIREBASE_* in frontend-react/.env and restart the dev server.');
+    }
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
     
@@ -155,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     loading,
+    authReady,
     signup,
     login,
     logout,

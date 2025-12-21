@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -11,7 +11,31 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const firebaseReady = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId
+);
+
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+
+if (import.meta.env.MODE === 'development') {
+  const key = firebaseConfig.apiKey;
+  const maskedKey = key ? `${key.slice(0, 4)}...${key.slice(-4)}` : 'missing';
+  console.info('[firebase] config', {
+    apiKey: maskedKey,
+    authDomain: firebaseConfig.authDomain || 'missing',
+    projectId: firebaseConfig.projectId || 'missing'
+  });
+}
+
+if (firebaseReady) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} else {
+  console.warn('[firebase] Missing config. Firebase auth is disabled.');
+}
+
+export { app, auth };
 export default app;
