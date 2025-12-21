@@ -52,11 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authReady = firebaseReady && !!auth;
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-
     // Check for test bypass
     if (typeof window !== 'undefined' && localStorage.getItem('test-skip-auth') === 'true') {
       setUser({
@@ -78,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         photoURL: null,
         providerId: 'firebase',
       } as User);
+      setLoading(false);
+      return;
+    }
+
+    if (!auth) {
       setLoading(false);
       return;
     }

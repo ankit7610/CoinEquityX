@@ -18,3 +18,6 @@ docs_archive/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+frontend-react/test-results/
+frontend-react/playwright-report/
+frontend-react/coverage/
