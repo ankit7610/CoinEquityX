@@ -44,6 +44,7 @@ function Shell() {
   useEffect(() => {
     localStorage.setItem('theme', mode);
     document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.classList.toggle('theme-dark', mode === 'dark');
     document.documentElement.style.scrollBehavior = 'smooth';
   }, [mode]);
 
@@ -62,8 +63,8 @@ function Shell() {
             light: mode === 'dark' ? '#6DD0F5' : '#6DD0F5',
           },
           background: {
-            default: mode === 'dark' ? '#0f1419' : '#FAFAFA',
-            paper: mode === 'dark' ? '#1a1f26' : '#FFFFFF',
+            default: mode === 'dark' ? '#0a0f1a' : '#f5f7fa',
+            paper: mode === 'dark' ? '#131a2b' : '#ffffff',
           },
           success: {
             main: mode === 'dark' ? '#00D09C' : '#00B386',

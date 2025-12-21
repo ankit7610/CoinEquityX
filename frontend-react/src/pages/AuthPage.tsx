@@ -49,7 +49,7 @@ export default function AuthPage() {
     mobile: ''
   });
 
-  const { signup, login, loginWithGoogle } = useAuth();
+  const { signup, login, loginWithGoogle, authReady } = useAuth();
   const theme = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,6 +195,12 @@ export default function AuthPage() {
               </Typography>
             </Box>
           </Stack>
+
+          {!authReady && (
+            <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+              Firebase auth is not configured. Add VITE_FIREBASE_* to frontend-react/.env and restart the dev server.
+            </Alert>
+          )}
 
           {/* Error Alert */}
           {error && (
@@ -427,7 +433,7 @@ export default function AuthPage() {
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={loading}
+                disabled={loading || !authReady}
                 sx={{
                   py: 1.5,
                   borderRadius: 1.5,
@@ -463,7 +469,7 @@ export default function AuthPage() {
             size="large"
             fullWidth
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loading || !authReady}
             sx={{
               py: 1.5,
               borderRadius: 1.5,

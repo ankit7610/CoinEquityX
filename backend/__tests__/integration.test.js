@@ -2,7 +2,7 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 
-const BASE_URL = 'http://localhost:3001';
+let baseUrl = '';
 let server;
 
 // Mock environment variables
@@ -24,7 +24,15 @@ describe('Backend API Integration Tests', () => {
         });
       }
     });
-    await new Promise(resolve => server.listen(3001, resolve));
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', () => {
+        server.off('error', reject);
+        resolve();
+      });
+    });
+    const port = server.address().port;
+    baseUrl = `http://127.0.0.1:${port}`;
   });
 
   after(async () => {
@@ -35,7 +43,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('GET /api/listings', () => {
     it('should return cryptocurrency listings', async () => {
-      const response = await fetch(`${BASE_URL}/api/listings`);
+      const response = await fetch(`${baseUrl}/api/listings`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -45,14 +53,14 @@ describe('Backend API Integration Tests', () => {
 
     it('should handle errors gracefully', async () => {
       // Test with invalid endpoint
-      const response = await fetch(`${BASE_URL}/api/listings?invalid=true`);
+      const response = await fetch(`${baseUrl}/api/listings?invalid=true`);
       assert.ok(response.status === 200 || response.status === 500);
     });
   });
 
   describe('GET /api/categories', () => {
     it('should return cryptocurrency categories', async () => {
-      const response = await fetch(`${BASE_URL}/api/categories?start=1`);
+      const response = await fetch(`${baseUrl}/api/categories?start=1`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -62,7 +70,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('GET /api/news', () => {
     it('should return crypto news', async () => {
-      const response = await fetch(`${BASE_URL}/api/news?countries=us&limit=10`);
+      const response = await fetch(`${baseUrl}/api/news?countries=us&limit=10`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -70,7 +78,7 @@ describe('Backend API Integration Tests', () => {
     });
 
     it('should support pagination', async () => {
-      const response = await fetch(`${BASE_URL}/api/news?countries=us&limit=5`);
+      const response = await fetch(`${baseUrl}/api/news?countries=us&limit=5`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -82,7 +90,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('GET /api/currency/latest', () => {
     it('should return currency exchange rates', async () => {
-      const response = await fetch(`${BASE_URL}/api/currency/latest?base_currency=USD`);
+      const response = await fetch(`${baseUrl}/api/currency/latest?base_currency=USD`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -90,7 +98,7 @@ describe('Backend API Integration Tests', () => {
     });
 
     it('should support different base currencies', async () => {
-      const response = await fetch(`${BASE_URL}/api/currency/latest?base_currency=EUR`);
+      const response = await fetch(`${baseUrl}/api/currency/latest?base_currency=EUR`);
       const data = await response.json();
       
       assert.strictEqual(response.status, 200);
@@ -101,7 +109,7 @@ describe('Backend API Integration Tests', () => {
   describe('Portfolio Endpoints', () => {
     describe('GET /api/portfolio', () => {
       it('should return portfolio data', async () => {
-        const response = await fetch(`${BASE_URL}/api/portfolio`);
+        const response = await fetch(`${baseUrl}/api/portfolio`);
         const data = await response.json();
         
         assert.ok(response.status === 200 || response.status === 501);
@@ -114,7 +122,7 @@ describe('Backend API Integration Tests', () => {
           { id: 1, name: 'Bitcoin', symbol: 'BTC', quantity: 0.5, cost: 25000 }
         ];
 
-        const response = await fetch(`${BASE_URL}/api/portfolio`, {
+        const response = await fetch(`${baseUrl}/api/portfolio`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(portfolio)
@@ -124,7 +132,7 @@ describe('Backend API Integration Tests', () => {
       });
 
       it('should validate portfolio data format', async () => {
-        const response = await fetch(`${BASE_URL}/api/portfolio`, {
+        const response = await fetch(`${baseUrl}/api/portfolio`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify('invalid')
@@ -141,7 +149,7 @@ describe('Backend API Integration Tests', () => {
       
       // Send multiple requests quickly
       for (let i = 0; i < 15; i++) {
-        requests.push(fetch(`${BASE_URL}/api/listings`));
+        requests.push(fetch(`${baseUrl}/api/listings`));
       }
       
       const responses = await Promise.all(requests);
@@ -155,7 +163,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('CORS', () => {
     it('should have CORS headers', async () => {
-      const response = await fetch(`${BASE_URL}/api/listings`);
+      const response = await fetch(`${baseUrl}/api/listings`);
       const corsHeader = response.headers.get('access-control-allow-origin');
       
       assert.ok(corsHeader !== null);
@@ -164,13 +172,13 @@ describe('Backend API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should return proper error for non-existent endpoints', async () => {
-      const response = await fetch(`${BASE_URL}/api/nonexistent`);
+      const response = await fetch(`${baseUrl}/api/nonexistent`);
       
       assert.strictEqual(response.status, 404);
     });
 
     it('should handle malformed requests', async () => {
-      const response = await fetch(`${BASE_URL}/api/portfolio`, {
+      const response = await fetch(`${baseUrl}/api/portfolio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: 'malformed json'
@@ -182,7 +190,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('Coin Info Endpoint', () => {
     it('should return coin information', async () => {
-      const response = await fetch(`${BASE_URL}/api/info?id=1`);
+      const response = await fetch(`${baseUrl}/api/info?id=1`);
       const data = await response.json();
       
       assert.ok(response.status === 200 || response.status === 500);
@@ -194,7 +202,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('Coin Quote Endpoint', () => {
     it('should return coin quote data', async () => {
-      const response = await fetch(`${BASE_URL}/api/quote?id=1`);
+      const response = await fetch(`${baseUrl}/api/quote?id=1`);
       const data = await response.json();
       
       assert.ok(response.status === 200 || response.status === 500);
@@ -206,7 +214,7 @@ describe('Backend API Integration Tests', () => {
 
   describe('Health Check', () => {
     it('should respond to health check', async () => {
-      const response = await fetch(`${BASE_URL}/`);
+      const response = await fetch(`${baseUrl}/`);
       
       assert.strictEqual(response.status, 200);
     });

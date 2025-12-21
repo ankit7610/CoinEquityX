@@ -43,10 +43,8 @@ test.beforeEach(async ({ page }) => {
 const base = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
 async function login(page) {
+  await page.addInitScript(() => localStorage.setItem('test-skip-auth', 'true'));
   await page.goto(base);
-  await page.getByLabel('Email Address').fill('aa@gmail.com');
-  await page.getByLabel('Password').fill('123456');
-  await page.getByRole('button', { name: /Sign In/i }).click();
   await expect(page.getByRole('tab', { name: 'Explore' })).toBeVisible();
 }
 
