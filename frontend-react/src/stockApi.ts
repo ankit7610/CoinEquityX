@@ -3,6 +3,9 @@ import { getCached, setCached } from './idbCache';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for all stock data
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const withBase = (path: string) => `${API_BASE}${path}`;
+
 async function fetchJson<T>(
   url: string,
   ttlMs = CACHE_TTL_MS,
@@ -27,38 +30,44 @@ async function fetchJson<T>(
 }
 
 export async function getStockSymbols(exchange = 'US'): Promise<Stock[]> {
-  return fetchJson<Stock[]>(`/api/stock/symbols?exchange=${exchange}`);
+  return fetchJson<Stock[]>(withBase(`/api/stock/symbols?exchange=${exchange}`));
 }
 
 export async function searchStocks(query: string): Promise<Stock[]> {
   if (!query.trim()) return [];
-  return fetchJson<Stock[]>(`/api/stock/search?q=${encodeURIComponent(query)}`);
+  return fetchJson<Stock[]>(withBase(`/api/stock/search?q=${encodeURIComponent(query)}`));
 }
 
 export async function getStockNews(): Promise<StockNews[]> {
-  return fetchJson<StockNews[]>('/api/stock/news');
+  return fetchJson<StockNews[]>(withBase('/api/stock/news'));
 }
 
 export async function getStockQuote(symbol: string): Promise<StockQuote> {
-  return fetchJson<StockQuote>(`/api/stock/quote?symbol=${encodeURIComponent(symbol)}`);
+  return fetchJson<StockQuote>(withBase(`/api/stock/quote?symbol=${encodeURIComponent(symbol)}`));
 }
 
 export async function getStockMetric(symbol: string): Promise<StockMetric> {
-  return fetchJson<StockMetric>(`/api/stock/metric?symbol=${encodeURIComponent(symbol)}`);
+  return fetchJson<StockMetric>(withBase(`/api/stock/metric?symbol=${encodeURIComponent(symbol)}`));
 }
 
 export async function getStockPortfolio(userId?: string): Promise<{ data: StockPortfolioEntry[] }> {
   const headers: HeadersInit = {};
   if (userId) headers['X-User-ID'] = userId;
-  const cacheKey = `/api/stock/portfolio?user=${userId || 'anon'}`;
-  return fetchJson<{ data: StockPortfolioEntry[] }>('/api/stock/portfolio', CACHE_TTL_MS, true, headers, cacheKey);
+  const cacheKey = `${API_BASE}/api/stock/portfolio?user=${userId || 'anon'}`;
+  return fetchJson<{ data: StockPortfolioEntry[] }>(
+    withBase('/api/stock/portfolio'),
+    CACHE_TTL_MS,
+    true,
+    headers,
+    cacheKey
+  );
 }
 
 export async function saveStockPortfolio(entries: StockPortfolioEntry[], userId?: string): Promise<{ data: StockPortfolioEntry[] }> {
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   if (userId) headers['X-User-ID'] = userId;
 
-  const res = await fetch('/api/stock/portfolio', {
+  const res = await fetch(withBase('/api/stock/portfolio'), {
     method: 'PUT',
     headers,
     body: JSON.stringify(entries)
@@ -67,7 +76,7 @@ export async function saveStockPortfolio(entries: StockPortfolioEntry[], userId?
 
   // Update cache with new data
   if (res.ok) {
-    const cacheKey = `/api/stock/portfolio?user=${userId || 'anon'}`;
+    const cacheKey = `${API_BASE}/api/stock/portfolio?user=${userId || 'anon'}`;
     await setCached(cacheKey, data);
   }
 
