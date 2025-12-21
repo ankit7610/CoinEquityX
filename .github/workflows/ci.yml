@@ -299,7 +299,7 @@ jobs:
           working-directory: frontend-react
 
       - name: Deploy backend to Railway
-        uses: bervProject/railway-deploy@v1.1.0
+        uses: bervProject/railway-deploy@v1
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: backend
