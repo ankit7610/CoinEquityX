@@ -302,6 +302,7 @@ jobs:
           github-deployment: false
 
       - name: Deploy backend to Render
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
         run: |
           curl -sS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
 
