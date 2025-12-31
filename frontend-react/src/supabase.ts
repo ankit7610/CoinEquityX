@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://auydhmadfjymkxurrqjo.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eWRobWFkZmp5bWt4dXJycWpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MDQwMTEsImV4cCI6MjA4MTM4MDAxMX0.8BnbXyCdkYBMYtPqlq80--twBV_R3N3DtJru5PZURtg';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder';
+
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  console.warn('Supabase URL is missing. Using placeholder. Database operations will fail.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
