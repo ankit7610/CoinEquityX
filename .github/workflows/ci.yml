@@ -296,7 +296,10 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
+          vercel-version: 'latest'
           working-directory: frontend-react
+          github-comment: ${{ github.event_name == 'pull_request' }}
+          github-deployment: false
 
       - name: Deploy backend to Render
         run: |
