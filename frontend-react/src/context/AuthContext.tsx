@@ -38,6 +38,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getTestSkipAuth(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem('test-skip-auth') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function buildTestUser(): User {
+  return {
+    uid: 'test-user-id',
+    email: 'test@example.com',
+    displayName: 'Test User',
+    emailVerified: true,
+    isAnonymous: false,
+    metadata: {},
+    providerData: [],
+    refreshToken: '',
+    tenantId: null,
+    delete: async () => {},
+    getIdToken: async () => '',
+    getIdTokenResult: async () => ({} as any),
+    reload: async () => {},
+    toJSON: () => ({}),
+    phoneNumber: null,
+    photoURL: null,
+    providerId: 'firebase',
+  } as User;
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -47,32 +78,14 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => (getTestSkipAuth() ? buildTestUser() : null));
+  const [loading, setLoading] = useState(() => !(getTestSkipAuth() || !auth));
   const authReady = firebaseReady && !!auth;
 
   useEffect(() => {
     // Check for test bypass
-    if (typeof window !== 'undefined' && localStorage.getItem('test-skip-auth') === 'true') {
-      setUser({
-        uid: 'test-user-id',
-        email: 'test@example.com',
-        displayName: 'Test User',
-        emailVerified: true,
-        isAnonymous: false,
-        metadata: {},
-        providerData: [],
-        refreshToken: '',
-        tenantId: null,
-        delete: async () => {},
-        getIdToken: async () => '',
-        getIdTokenResult: async () => ({} as any),
-        reload: async () => {},
-        toJSON: () => ({}),
-        phoneNumber: null,
-        photoURL: null,
-        providerId: 'firebase',
-      } as User);
+    if (getTestSkipAuth()) {
+      setUser(buildTestUser());
       setLoading(false);
       return;
     }
@@ -82,12 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      clearTimeout(timeout);
       setUser(user);
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, []);
 
   const signup = async (
