@@ -8,10 +8,12 @@ import {
   Grid, 
   Box,
   CardMedia,
-  Paper
+  Paper,
+  Button
 } from '@mui/material';
 import { Article, AccessTime, TrendingUp } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { getStockNews } from '../stockApi';
 import { StockNews as StockNewsItem } from '../stockTypes';
 
@@ -23,6 +25,20 @@ export default function StockNewsPage() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+
+  const pageSize = 3;
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(items.length / pageSize);
+  const pagedItems = useMemo(
+    () => items.slice(page * pageSize, page * pageSize + pageSize),
+    [items, page]
+  );
+
+  useEffect(() => {
+    if (page > 0 && page >= totalPages) {
+      setPage(0);
+    }
+  }, [page, totalPages]);
 
   return (
     <Box>
@@ -78,12 +94,33 @@ export default function StockNewsPage() {
 
       {isLoading && <LinearProgress sx={{ mb: 3, borderRadius: 2 }} />}
       <Grid container spacing={3}>
-        {items.map((item: StockNewsItem, idx: number) => (
+        {pagedItems.map((item: StockNewsItem, idx: number) => (
           <Grid item key={item.id || idx} xs={12} sm={6} lg={4}>
             <NewsCard item={item} />
           </Grid>
         ))}
       </Grid>
+      {!isLoading && items.length > pageSize && (
+        <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" mt={4}>
+          <Button
+            variant="outlined"
+            onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+            disabled={page === 0}
+          >
+            Previous
+          </Button>
+          <Typography variant="body2" color="text.secondary">
+            Page {page + 1} of {totalPages}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+            disabled={page >= totalPages - 1}
+          >
+            Next
+          </Button>
+        </Stack>
+      )}
       {!isLoading && !items.length && (
         <Paper
           elevation={0}
