@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Email, Person, CalendarToday, Verified, Cake, Wc, Work, Public, PhoneIphone, Timeline } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { getUserProfile, UserProfile } from '../supabase';
+import { getUserProfile, UserProfile, isSupabaseConfigured } from '../supabase';
 import { useState, useEffect } from 'react';
 
 export default function ProfilePage() {
@@ -247,9 +247,20 @@ export default function ProfilePage() {
                   borderRadius: 2,
                 }}
               >
-                <Typography variant="body2" color="text.secondary" align="center">
-                  Profile data not found in Supabase
-                </Typography>
+                {!isSupabaseConfigured ? (
+                  <Stack spacing={1} alignItems="center">
+                    <Typography variant="subtitle2" color="error" fontWeight="bold">
+                      Configuration Error
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" align="center">
+                      Supabase connection is not configured. Missing environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Profile data not found in Supabase
+                  </Typography>
+                )}
               </Paper>
             )}
           </Stack>
@@ -269,18 +280,18 @@ export default function ProfilePage() {
                 Firebase UID: {user.uid}
               </Typography>
             </Paper>
-            
+
             {profile && (
               <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
-                <Chip 
-                  label="✓ Supabase Synced" 
-                  color="success" 
-                  size="small" 
+                <Chip
+                  label="✓ Supabase Synced"
+                  color="success"
+                  size="small"
                   variant="outlined"
                 />
-                <Chip 
+                <Chip
                   label={`Profile ID: ${profile.id?.slice(0, 8)}...`}
-                  size="small" 
+                  size="small"
                   variant="outlined"
                 />
               </Stack>

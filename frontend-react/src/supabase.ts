@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder';
 
-if (!import.meta.env.VITE_SUPABASE_URL) {
-  console.warn('Supabase URL is missing. Using placeholder. Database operations will fail.');
+export const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
+
+if (!isSupabaseConfigured) {
+  console.warn('Supabase URL is missing or placeholder. Database operations will fail.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
