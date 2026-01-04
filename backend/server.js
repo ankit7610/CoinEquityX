@@ -120,6 +120,7 @@ DASHBOARD FEATURES:
 - Real-time cryptocurrency prices, market cap, and 24h/7d/30d changes for top 100 coins
 - Stock market data with real-time quotes and financial news
 - Dual portfolio system for tracking both crypto and stock holdings
+- Virtual Trading: Practice trading with ₹1,000,000 virtual money without real financial risk
 - Category explorer for browsing crypto by type (Layer 1, DeFi, Stablecoins, etc.)
 - Latest crypto and stock news with curated content
 - Multi-currency support (USD, EUR, GBP, INR, etc.)
@@ -128,11 +129,15 @@ DASHBOARD FEATURES:
 - User profiles with personal info and preferences
 
 HOW TO USE THE DASHBOARD:
-- Navigate using tabs at the top: Dashboard, Categories, News, Portfolio, Profile
+- Navigate using tabs at the top: Explore, Categories, Portfolio, News, Virtual Trading, Profile
 - Search for specific cryptocurrencies or stocks using the search bar
 - Click on any coin/stock to view detailed information
 - Add holdings to portfolio by clicking "Add to Portfolio" buttons
 - View portfolio analytics including gains/losses and holdings breakdown
+- Practice trading in Virtual Trading tab with ₹1,000,000 starting balance
+- Buy and sell crypto/stocks with virtual money to learn trading strategies
+- Track your virtual portfolio performance and transaction history
+- Reset virtual portfolio anytime to start fresh
 - Switch currencies using the currency selector in the top bar
 - Toggle dark/light mode using the theme button
 - Access this AI chat anytime via the floating button in the bottom-right
@@ -319,6 +324,69 @@ RESPONSE GUIDELINES:
             return sendJson(res, 200, { data: saved });
           }
           return sendJson(res, 405, { error: 'Method Not Allowed' });
+        }
+        case '/api/virtual-portfolio': {
+          if (!mongoConfig.uri) {
+            return sendJson(res, 501, { error: 'Portfolio storage not configured (MONGODB_URI missing)' });
+          }
+          const userId = req.headers['x-user-id'] || 'default';
+          if (req.method === 'GET') {
+            const portfolio = await readVirtualPortfolio(mongoConfig, userId);
+            return sendJson(res, 200, { data: portfolio });
+          }
+          return sendJson(res, 405, { error: 'Method Not Allowed' });
+        }
+        case '/api/virtual-portfolio/trade': {
+          if (!mongoConfig.uri) {
+            return sendJson(res, 501, { error: 'Portfolio storage not configured (MONGODB_URI missing)' });
+          }
+          if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method Not Allowed' });
+
+          const userId = req.headers['x-user-id'] || 'default';
+          const body = await readJsonBody(req);
+
+          // Validate trade request
+          const { type, assetType, assetId, symbol, name, quantity, price } = body;
+          if (!type || !['buy', 'sell'].includes(type)) {
+            return sendJson(res, 400, { error: 'Invalid trade type. Must be "buy" or "sell"' });
+          }
+          if (!assetType || !['crypto', 'stock'].includes(assetType)) {
+            return sendJson(res, 400, { error: 'Invalid asset type. Must be "crypto" or "stock"' });
+          }
+          if (!assetId || !symbol || !name) {
+            return sendJson(res, 400, { error: 'Missing required fields: assetId, symbol, name' });
+          }
+          if (!quantity || quantity <= 0) {
+            return sendJson(res, 400, { error: 'Quantity must be greater than 0' });
+          }
+          if (!price || price <= 0) {
+            return sendJson(res, 400, { error: 'Price must be greater than 0' });
+          }
+
+          try {
+            const portfolio = await executeVirtualTrade(mongoConfig, userId, {
+              type,
+              assetType,
+              assetId: String(assetId),
+              symbol,
+              name,
+              quantity: Number(quantity),
+              price: Number(price)
+            });
+            return sendJson(res, 200, { data: portfolio });
+          } catch (err) {
+            return sendJson(res, 400, { error: err.message });
+          }
+        }
+        case '/api/virtual-portfolio/reset': {
+          if (!mongoConfig.uri) {
+            return sendJson(res, 501, { error: 'Portfolio storage not configured (MONGODB_URI missing)' });
+          }
+          if (req.method !== 'POST') return sendJson(res, 405, { error: 'Method Not Allowed' });
+
+          const userId = req.headers['x-user-id'] || 'default';
+          const portfolio = await resetVirtualPortfolio(mongoConfig, userId);
+          return sendJson(res, 200, { data: portfolio });
         }
         default:
           return sendJson(res, 404, { error: 'Not Found' });
@@ -583,6 +651,177 @@ async function writeStockPortfolio(config, entries, userId) {
   );
   return entries;
 }
+
+const INITIAL_VIRTUAL_BALANCE = 1000000; // ₹1,000,000 in INR
+
+async function readVirtualPortfolio(config, userId) {
+  const client = await getMongoClient(config.uri);
+  const db = client.db(config.db);
+  const collection = db.collection('virtual_portfolio');
+  let doc = await collection.findOne({ _id: userId });
+
+  // Initialize new user with starting balance
+  if (!doc) {
+    doc = {
+      _id: userId,
+      balance: INITIAL_VIRTUAL_BALANCE,
+      holdings: [],
+      transactions: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    await collection.insertOne(doc);
+  }
+
+  return {
+    balance: doc.balance || INITIAL_VIRTUAL_BALANCE,
+    holdings: doc.holdings || [],
+    transactions: doc.transactions || []
+  };
+}
+
+async function executeVirtualTrade(config, userId, trade) {
+  const client = await getMongoClient(config.uri);
+  const db = client.db(config.db);
+  const collection = db.collection('virtual_portfolio');
+
+  const portfolio = await readVirtualPortfolio(config, userId);
+  const { type, assetType, assetId, symbol, name, quantity, price } = trade;
+  const total = quantity * price;
+
+  if (type === 'buy') {
+    // Check if user has sufficient balance
+    if (portfolio.balance < total) {
+      throw new Error(`Insufficient balance. Required: ₹${total.toFixed(2)}, Available: ₹${portfolio.balance.toFixed(2)}`);
+    }
+
+    // Deduct from balance
+    portfolio.balance -= total;
+
+    // Find existing holding
+    const existingIndex = portfolio.holdings.findIndex(
+      h => h.assetId === assetId && h.assetType === assetType
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing holding with new average price
+      const existing = portfolio.holdings[existingIndex];
+      const newTotalCost = existing.totalCost + total;
+      const newQuantity = existing.quantity + quantity;
+      portfolio.holdings[existingIndex] = {
+        ...existing,
+        quantity: newQuantity,
+        avgBuyPrice: newTotalCost / newQuantity,
+        totalCost: newTotalCost
+      };
+    } else {
+      // Add new holding
+      portfolio.holdings.push({
+        assetType,
+        assetId,
+        symbol,
+        name,
+        quantity,
+        avgBuyPrice: price,
+        totalCost: total
+      });
+    }
+  } else if (type === 'sell') {
+    // Find holding
+    const existingIndex = portfolio.holdings.findIndex(
+      h => h.assetId === assetId && h.assetType === assetType
+    );
+
+    if (existingIndex < 0) {
+      throw new Error(`You don't own any ${symbol}`);
+    }
+
+    const existing = portfolio.holdings[existingIndex];
+    if (existing.quantity < quantity) {
+      throw new Error(`Insufficient holdings. You own ${existing.quantity} ${symbol}, trying to sell ${quantity}`);
+    }
+
+    // Add to balance
+    portfolio.balance += total;
+
+    // Update holding
+    if (existing.quantity === quantity) {
+      // Remove holding completely
+      portfolio.holdings.splice(existingIndex, 1);
+    } else {
+      // Reduce quantity
+      const newQuantity = existing.quantity - quantity;
+      const costReduction = (quantity / existing.quantity) * existing.totalCost;
+      portfolio.holdings[existingIndex] = {
+        ...existing,
+        quantity: newQuantity,
+        totalCost: existing.totalCost - costReduction
+      };
+    }
+  }
+
+  // Add transaction to history
+  const transaction = {
+    id: Math.random().toString(36).substring(2) + Date.now().toString(36),
+    timestamp: new Date().toISOString(),
+    type,
+    assetType,
+    symbol,
+    name,
+    quantity,
+    price,
+    total,
+    balanceAfter: portfolio.balance
+  };
+  portfolio.transactions.unshift(transaction); // Add to beginning
+
+  // Keep only last 100 transactions
+  if (portfolio.transactions.length > 100) {
+    portfolio.transactions = portfolio.transactions.slice(0, 100);
+  }
+
+  // Save to database
+  await collection.updateOne(
+    { _id: userId },
+    {
+      $set: {
+        balance: portfolio.balance,
+        holdings: portfolio.holdings,
+        transactions: portfolio.transactions,
+        updatedAt: new Date()
+      }
+    },
+    { upsert: true }
+  );
+
+  return portfolio;
+}
+
+async function resetVirtualPortfolio(config, userId) {
+  const client = await getMongoClient(config.uri);
+  const db = client.db(config.db);
+  const collection = db.collection('virtual_portfolio');
+
+  const portfolio = {
+    balance: INITIAL_VIRTUAL_BALANCE,
+    holdings: [],
+    transactions: []
+  };
+
+  await collection.updateOne(
+    { _id: userId },
+    {
+      $set: {
+        ...portfolio,
+        updatedAt: new Date()
+      }
+    },
+    { upsert: true }
+  );
+
+  return portfolio;
+}
+
 
 async function closeMongoClient() {
   if (mongoClientPromise) {

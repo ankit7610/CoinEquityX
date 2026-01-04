@@ -82,3 +82,43 @@ export interface ApiResponse<T> {
     error_message?: string;
   };
 }
+
+export interface VirtualHolding {
+  assetType: 'crypto' | 'stock';
+  assetId: string | number;
+  symbol: string;
+  name: string;
+  quantity: number;
+  avgBuyPrice: number;
+  totalCost: number;
+}
+
+export interface VirtualTransaction {
+  id: string;
+  timestamp: string;
+  type: 'buy' | 'sell';
+  assetType: 'crypto' | 'stock';
+  symbol: string;
+  name: string;
+  quantity: number;
+  price: number;
+  total: number;
+  balanceAfter: number;
+}
+
+export interface VirtualPortfolio {
+  balance: number;
+  holdings: VirtualHolding[];
+  transactions: VirtualTransaction[];
+}
+
+export interface TradeRequest {
+  type: 'buy' | 'sell';
+  assetType: 'crypto' | 'stock';
+  assetId: string | number;
+  symbol: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
