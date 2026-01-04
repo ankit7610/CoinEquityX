@@ -14,10 +14,12 @@ import {
     Alert,
     Chip,
     CircularProgress,
+    Paper,
+    IconButton,
 } from '@mui/material';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CurrencyBitcoin, ShowChart, TrendingUp, TrendingDown } from '@mui/icons-material';
+import { CurrencyBitcoin, ShowChart, TrendingUp, TrendingDown, Close, ShoppingCart } from '@mui/icons-material';
 import { getListings } from '../api';
 import { getStockSymbols, getStockQuote } from '../stockApi';
 import { executeTrade } from '../virtualTradingApi';
@@ -83,7 +85,6 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
 
         if (assetType === 'crypto') {
             const priceUSD = selectedAsset.quote?.USD?.price || 0;
-            // Convert to INR (virtual trading is in INR)
             return convert(priceUSD, 'USD', 'INR', fxRates);
         } else {
             const priceUSD = stockQuoteData?.c || 0;
@@ -98,7 +99,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
     const availableQuantity = useMemo(() => {
         if (tradeType === 'sell' && selectedAsset) {
             const holding = holdings.find(
-                h => h.assetId === selectedAsset.id && h.assetType === assetType
+                h => h.assetId === String(selectedAsset.id) && h.assetType === assetType
             );
             return holding?.quantity || 0;
         }
@@ -114,7 +115,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                 symbol: coin.symbol,
                 name: coin.name,
                 type: 'crypto',
-                quote: coin.quote, // Store quote data
+                quote: coin.quote,
             }));
         } else {
             const stocks = stockData || [];
@@ -130,29 +131,19 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
     // Validation
     const canTrade = useMemo(() => {
         if (!selectedAsset || !quantity || Number(quantity) <= 0 || (currentPrice || 0) <= 0) return false;
-
-        if (tradeType === 'buy') {
-            return total <= balance;
-        } else {
-            return Number(quantity) <= availableQuantity;
-        }
+        if (tradeType === 'buy') return total <= balance;
+        return Number(quantity) <= availableQuantity;
     }, [selectedAsset, quantity, tradeType, total, balance, availableQuantity, currentPrice]);
 
     const validationMessage = useMemo(() => {
         if (!selectedAsset || !quantity) return '';
-
-        if ((currentPrice || 0) <= 0) {
-            return 'Unable to fetch current price. Please try again or select a different asset.';
-        }
-
+        if ((currentPrice || 0) <= 0) return 'Fetching current market price...';
         if (tradeType === 'buy' && total > balance) {
             return `Insufficient balance. You need ₹${total.toLocaleString()} but have ₹${balance.toLocaleString()}`;
         }
-
         if (tradeType === 'sell' && Number(quantity) > availableQuantity) {
             return `Insufficient holdings. You have ${availableQuantity} ${selectedAsset.symbol}`;
         }
-
         return '';
     }, [tradeType, selectedAsset, quantity, total, balance, availableQuantity, currentPrice]);
 
@@ -165,11 +156,10 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
 
     const handleTrade = () => {
         if (!canTrade || !selectedAsset) return;
-
         tradeMutation.mutate({
             type: tradeType,
             assetType,
-            assetId: selectedAsset.id,
+            assetId: String(selectedAsset.id),
             symbol: selectedAsset.symbol,
             name: selectedAsset.name,
             quantity: Number(quantity),
@@ -177,7 +167,6 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
         });
     };
 
-    // Reset selected asset when asset type changes
     useEffect(() => {
         setSelectedAsset(null);
         setQuantity('');
@@ -185,184 +174,145 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
     }, [assetType]);
 
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    {assetType === 'crypto' ? <CurrencyBitcoin /> : <ShowChart />}
-                    <Typography variant="h6" fontWeight={700}>
-                        {tradeType === 'buy' ? 'Buy' : 'Sell'} {assetType === 'crypto' ? 'Cryptocurrency' : 'Stock'}
-                    </Typography>
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    background: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+                    backgroundImage: 'none',
+                }
+            }}
+        >
+            <DialogTitle sx={{ p: 3, pb: 0 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Box sx={{
+                            p: 1,
+                            borderRadius: 2,
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                            color: 'white',
+                            display: 'flex',
+                        }}>
+                            <ShoppingCart fontSize="small" />
+                        </Box>
+                        <Typography variant="h6" fontWeight={800}>
+                            {tradeType === 'buy' ? 'Buy' : 'Sell'} {assetType === 'crypto' ? 'Crypto' : 'Stock'}
+                        </Typography>
+                    </Stack>
+                    <IconButton onClick={handleClose} size="small" sx={{ color: 'text.disabled' }}>
+                        <Close fontSize="small" />
+                    </IconButton>
                 </Stack>
             </DialogTitle>
 
-            <DialogContent>
+            <DialogContent sx={{ p: 3 }}>
                 <Stack spacing={3} sx={{ mt: 1 }}>
-                    {/* Trade Type Toggle */}
-                    <Box>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Trade Type
-                        </Typography>
+                    <Stack direction="row" spacing={1}>
                         <ToggleButtonGroup
                             value={tradeType}
                             exclusive
-                            onChange={(_, value) => value && setTradeType(value)}
+                            onChange={(_, v) => v && setTradeType(v)}
                             fullWidth
+                            size="small"
+                            sx={{ '& .MuiToggleButton-root': { fontWeight: 700, borderRadius: 2 } }}
                         >
-                            <ToggleButton value="buy" color="success">
-                                <TrendingUp sx={{ mr: 1 }} />
-                                Buy
-                            </ToggleButton>
-                            <ToggleButton value="sell" color="error">
-                                <TrendingDown sx={{ mr: 1 }} />
-                                Sell
-                            </ToggleButton>
+                            <ToggleButton value="buy" sx={{ color: 'success.main', '&.Mui-selected': { bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' } } }}>BUY</ToggleButton>
+                            <ToggleButton value="sell" sx={{ color: 'error.main', '&.Mui-selected': { bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } } }}>SELL</ToggleButton>
                         </ToggleButtonGroup>
-                    </Box>
 
-                    {/* Asset Type Toggle */}
-                    <Box>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Asset Type
-                        </Typography>
                         <ToggleButtonGroup
                             value={assetType}
                             exclusive
-                            onChange={(_, value) => value && setAssetType(value)}
+                            onChange={(_, v) => v && setAssetType(v)}
                             fullWidth
+                            size="small"
+                            sx={{ '& .MuiToggleButton-root': { fontWeight: 700, borderRadius: 2 } }}
                         >
-                            <ToggleButton value="crypto">
-                                <CurrencyBitcoin sx={{ mr: 1 }} />
-                                Crypto
-                            </ToggleButton>
-                            <ToggleButton value="stock">
-                                <ShowChart sx={{ mr: 1 }} />
-                                Stock
-                            </ToggleButton>
+                            <ToggleButton value="crypto">CRYPTO</ToggleButton>
+                            <ToggleButton value="stock">STOCK</ToggleButton>
                         </ToggleButtonGroup>
-                    </Box>
+                    </Stack>
 
-                    {/* Asset Selection */}
                     <Autocomplete
                         value={selectedAsset}
-                        onChange={(_, newValue) => setSelectedAsset(newValue)}
+                        onChange={(_, nv) => setSelectedAsset(nv)}
                         options={assetOptions}
-                        getOptionLabel={(option) => `${option.name} (${option.symbol})`}
-                        renderOption={(props, option) => (
-                            <Box component="li" {...props}>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
-                                    <Box sx={{ flex: 1 }}>
-                                        <Typography variant="body2" fontWeight={600}>{option.symbol}</Typography>
-                                        <Typography variant="caption" color="text.secondary">{option.name}</Typography>
-                                    </Box>
-                                </Stack>
-                            </Box>
-                        )}
+                        getOptionLabel={(o) => `${o.name} (${o.symbol})`}
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                label={`Search ${assetType === 'crypto' ? 'Cryptocurrency' : 'Stock'}`}
-                                placeholder="Type to search..."
+                                label={`Select ${assetType}`}
+                                placeholder="Search..."
+                                InputProps={{
+                                    ...params.InputProps,
+                                    sx: { borderRadius: 2 }
+                                }}
                             />
                         )}
                         loading={assetType === 'crypto' ? !cryptoData : !stockData}
                     />
 
-                    {/* Quantity Input */}
                     <TextField
                         label="Quantity"
                         type="number"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
                         fullWidth
+                        helperText={tradeType === 'sell' && selectedAsset ? `Available: ${availableQuantity} ${selectedAsset.symbol}` : ''}
                         InputProps={{
-                            inputProps: { min: 0, step: assetType === 'crypto' ? '0.00000001' : '1' },
+                            sx: { borderRadius: 2 },
+                            inputProps: { min: 0, step: assetType === 'crypto' ? '0.0001' : '1' }
                         }}
-                        helperText={
-                            tradeType === 'sell' && selectedAsset
-                                ? `Available: ${availableQuantity} ${selectedAsset.symbol}`
-                                : ''
-                        }
                     />
 
-                    {/* Price Display */}
                     {selectedAsset && (
-                        <Box
-                            sx={{
-                                p: 2,
-                                borderRadius: 2,
-                                bgcolor: 'action.hover',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                            }}
-                        >
-                            <Stack spacing={1}>
+                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderStyle: 'dashed' }}>
+                            <Stack spacing={1.5}>
                                 <Stack direction="row" justifyContent="space-between">
-                                    <Typography variant="body2" color="text.secondary">Current Price</Typography>
-                                    <Typography variant="body2" fontWeight={600}>
-                                        ₹{(currentPrice || 0).toLocaleString()}
-                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>Market Price</Typography>
+                                    <Typography variant="body2" fontWeight={700}>₹{currentPrice.toLocaleString()}</Typography>
                                 </Stack>
-                                <Stack direction="row" justifyContent="space-between">
-                                    <Typography variant="body2" color="text.secondary">Quantity</Typography>
-                                    <Typography variant="body2" fontWeight={600}>
-                                        {quantity || 0}
-                                    </Typography>
+                                <Stack direction="row" justifyContent="space-between" sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                                    <Typography variant="subtitle1" fontWeight={800}>{tradeType === 'buy' ? 'Total Cost' : 'Proceeds'}</Typography>
+                                    <Typography variant="subtitle1" fontWeight={800} color="primary.main">₹{total.toLocaleString()}</Typography>
                                 </Stack>
-                                <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1, mt: 1 }}>
-                                    <Stack direction="row" justifyContent="space-between">
-                                        <Typography variant="body1" fontWeight={700}>Total</Typography>
-                                        <Typography variant="body1" fontWeight={700} color="primary.main">
-                                            ₹{total.toLocaleString()}
-                                        </Typography>
-                                    </Stack>
-                                </Box>
                             </Stack>
-                        </Box>
+                        </Paper>
                     )}
 
-                    {/* Balance Display */}
-                    <Box
-                        sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                        }}
-                    >
+                    <Box sx={{ p: 2, borderRadius: 2, background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2">Available Balance</Typography>
-                            <Typography variant="h6" fontWeight={700}>
-                                ₹{balance.toLocaleString()}
-                            </Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 600, letterSpacing: 1 }}>AVAILABLE CASH</Typography>
+                            <Typography variant="h6" fontWeight={800}>₹{balance.toLocaleString()}</Typography>
                         </Stack>
                     </Box>
 
-                    {/* Validation Message */}
-                    {validationMessage && (
-                        <Alert severity="error">{validationMessage}</Alert>
-                    )}
-
-                    {/* Error Message */}
-                    {error && (
-                        <Alert severity="error" onClose={() => setError('')}>
-                            {error}
-                        </Alert>
-                    )}
+                    {validationMessage && <Alert severity="info" sx={{ borderRadius: 2, fontWeight: 500 }}>{validationMessage}</Alert>}
+                    {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 3 }}>
-                <Button onClick={handleClose}>Cancel</Button>
+            <DialogActions sx={{ p: 3, pt: 0 }}>
                 <Button
                     variant="contained"
+                    fullWidth
+                    size="large"
                     onClick={handleTrade}
                     disabled={!canTrade || tradeMutation.isPending}
-                    color={tradeType === 'buy' ? 'success' : 'error'}
-                    startIcon={tradeMutation.isPending ? <CircularProgress size={20} /> : null}
+                    sx={{
+                        py: 1.5,
+                        borderRadius: 2,
+                        fontWeight: 800,
+                        background: tradeType === 'buy' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                        '&:hover': { transform: 'scale(1.02)' },
+                        transition: 'all 0.2s',
+                    }}
                 >
-                    {tradeMutation.isPending
-                        ? 'Processing...'
-                        : `${tradeType === 'buy' ? 'Buy' : 'Sell'} ${selectedAsset?.symbol || 'Asset'}`}
+                    {tradeMutation.isPending ? <CircularProgress size={24} color="inherit" /> : `CONFIRM ${tradeType.toUpperCase()}`}
                 </Button>
             </DialogActions>
         </Dialog>
