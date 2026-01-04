@@ -274,7 +274,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                             <Stack spacing={1.5}>
                                 <Stack direction="row" justifyContent="space-between">
                                     <Typography variant="body2" color="text.secondary" fontWeight={500}>Market Price</Typography>
-                                    <Typography variant="body2" fontWeight={700}>₹{currentPrice.toLocaleString()}</Typography>
+                                    <Typography variant="body2" fontWeight={700}>₹{(currentPrice || 0).toLocaleString()}</Typography>
                                 </Stack>
                                 <Stack direction="row" justifyContent="space-between" sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
                                     <Typography variant="subtitle1" fontWeight={800}>{tradeType === 'buy' ? 'Total Cost' : 'Proceeds'}</Typography>

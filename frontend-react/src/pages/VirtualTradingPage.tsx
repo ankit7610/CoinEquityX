@@ -89,12 +89,12 @@ export default function VirtualTradingPage() {
             if (holding.assetType === 'crypto') {
                 const coin = coins.find(c => String(c.id) === String(holding.assetId));
                 if (coin?.quote?.USD?.price) {
-                    currentPriceINR = convert(coin.quote.USD.price, 'USD', 'INR', fxRates);
+                    currentPriceINR = convert(coin.quote.USD.price, 'USD', 'INR', fxRates) || 0;
                 }
             } else {
                 const quote = stockQuotes?.[holding.symbol];
                 if (quote?.c) {
-                    currentPriceINR = convert(quote.c, 'USD', 'INR', fxRates);
+                    currentPriceINR = convert(quote.c, 'USD', 'INR', fxRates) || 0;
                 }
             }
 
@@ -260,9 +260,9 @@ export default function VirtualTradingPage() {
                                             let currentPriceINR = 0;
                                             if (holding.assetType === 'crypto') {
                                                 const coin = coins.find(c => String(c.id) === String(holding.assetId));
-                                                currentPriceINR = coin?.quote?.USD?.price ? convert(coin.quote.USD.price, 'USD', 'INR', fxRates) : 0;
+                                                currentPriceINR = coin?.quote?.USD?.price ? (convert(coin.quote.USD.price, 'USD', 'INR', fxRates) || 0) : 0;
                                             } else {
-                                                currentPriceINR = stockQuotes?.[holding.symbol]?.c ? convert(stockQuotes[holding.symbol].c, 'USD', 'INR', fxRates) : 0;
+                                                currentPriceINR = stockQuotes?.[holding.symbol]?.c ? (convert(stockQuotes[holding.symbol].c, 'USD', 'INR', fxRates) || 0) : 0;
                                             }
 
                                             const currentValue = currentPriceINR * holding.quantity;
