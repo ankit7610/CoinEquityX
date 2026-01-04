@@ -36,7 +36,7 @@ function createAppServer(options = {}) {
   const rateLimit = Number(env.RATE_LIMIT || 1000);
   const rateWindowMs = Number(env.RATE_LIMIT_WINDOW_MS || 24 * 60 * 60 * 1000); // 24 hours
   const allowRequest = createRateLimiter({ limit: rateLimit, windowMs: rateWindowMs });
-  
+
   // In-memory cache for API responses
   const apiCache = new Map();
   const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for stock data
@@ -114,6 +114,37 @@ function createAppServer(options = {}) {
           if (!message) return sendJson(res, 400, { error: 'Missing message' });
           if (message.length > 4000) return sendJson(res, 413, { error: 'Message too long' });
 
+          const systemPrompt = `You are a helpful assistant for Crypto Pulse, a comprehensive cryptocurrency and stock market dashboard. 
+
+DASHBOARD FEATURES:
+- Real-time cryptocurrency prices, market cap, and 24h/7d/30d changes for top 100 coins
+- Stock market data with real-time quotes and financial news
+- Dual portfolio system for tracking both crypto and stock holdings
+- Category explorer for browsing crypto by type (Layer 1, DeFi, Stablecoins, etc.)
+- Latest crypto and stock news with curated content
+- Multi-currency support (USD, EUR, GBP, INR, etc.)
+- Light/Dark mode toggle
+- User authentication with Firebase (email, Google, GitHub)
+- User profiles with personal info and preferences
+
+HOW TO USE THE DASHBOARD:
+- Navigate using tabs at the top: Dashboard, Categories, News, Portfolio, Profile
+- Search for specific cryptocurrencies or stocks using the search bar
+- Click on any coin/stock to view detailed information
+- Add holdings to portfolio by clicking "Add to Portfolio" buttons
+- View portfolio analytics including gains/losses and holdings breakdown
+- Switch currencies using the currency selector in the top bar
+- Toggle dark/light mode using the theme button
+- Access this AI chat anytime via the floating button in the bottom-right
+
+RESPONSE GUIDELINES:
+- Keep responses concise: 2-3 sentences for simple queries, up to 5 sentences for complex ones
+- Use plain text only - NO markdown formatting, NO asterisks, NO bold/italic symbols
+- Be helpful and friendly
+- When asked about features, briefly explain what they do and how to access them
+- For market questions, acknowledge you can provide general info but recommend checking the live dashboard data
+- If asked about specific prices, remind users to check the real-time data on the dashboard`;
+
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`;
           const upstream = await fetchImpl(url, {
             method: 'POST',
@@ -122,6 +153,9 @@ function createAppServer(options = {}) {
               'X-goog-api-key': GEMINI_API_KEY
             },
             body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: systemPrompt }]
+              },
               contents: [
                 {
                   parts: [{ text: message }]
@@ -137,7 +171,11 @@ function createAppServer(options = {}) {
           }
 
           const parts = json?.candidates?.[0]?.content?.parts;
-          const text = Array.isArray(parts) ? parts.map((p) => p?.text).filter(Boolean).join('') : '';
+          let text = Array.isArray(parts) ? parts.map((p) => p?.text).filter(Boolean).join('') : '';
+
+          // Clean up markdown formatting
+          text = cleanMarkdownFormatting(text);
+
           return sendJson(res, 200, { text: text || '' });
         }
         case '/api/listings': {
@@ -207,7 +245,7 @@ function createAppServer(options = {}) {
           const cacheKey = `stock_symbols_${exchange}`;
           const cached = getCached(cacheKey);
           if (cached) return sendJson(res, 200, cached);
-          
+
           const finnhubUrl = `${FINNHUB_BASE_URL}/stock/symbol?exchange=${exchange}&token=${FINNHUB_API_KEY}`;
           const data = await fetchPassthrough(finnhubUrl, {}, fetchImpl);
           if (data.statusCode === 200) setCache(cacheKey, data.body);
@@ -220,7 +258,7 @@ function createAppServer(options = {}) {
           const cacheKey = `stock_search_${query}`;
           const cached = getCached(cacheKey);
           if (cached) return sendJson(res, 200, cached);
-          
+
           const finnhubUrl = `${FINNHUB_BASE_URL}/search?q=${encodeURIComponent(query)}&token=${FINNHUB_API_KEY}`;
           const data = await fetchPassthrough(finnhubUrl, {}, fetchImpl);
           const result = data.body.result || [];
@@ -232,7 +270,7 @@ function createAppServer(options = {}) {
           const cacheKey = 'stock_news_general';
           const cached = getCached(cacheKey);
           if (cached) return sendJson(res, 200, cached);
-          
+
           const finnhubUrl = `${FINNHUB_BASE_URL}/news?category=general&token=${FINNHUB_API_KEY}`;
           const data = await fetchPassthrough(finnhubUrl, {}, fetchImpl);
           if (data.statusCode === 200) setCache(cacheKey, data.body);
@@ -245,7 +283,7 @@ function createAppServer(options = {}) {
           const cacheKey = `stock_quote_${symbol}`;
           const cached = getCached(cacheKey);
           if (cached) return sendJson(res, 200, cached);
-          
+
           const finnhubUrl = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
           const data = await fetchPassthrough(finnhubUrl, {}, fetchImpl);
           if (data.statusCode === 200) setCache(cacheKey, data.body);
@@ -258,7 +296,7 @@ function createAppServer(options = {}) {
           const cacheKey = `stock_metric_${symbol}`;
           const cached = getCached(cacheKey);
           if (cached) return sendJson(res, 200, cached);
-          
+
           const finnhubUrl = `${FINNHUB_BASE_URL}/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${FINNHUB_API_KEY}`;
           const data = await fetchPassthrough(finnhubUrl, {}, fetchImpl);
           if (data.statusCode === 200) setCache(cacheKey, data.body);
@@ -383,6 +421,31 @@ function corsHeaders() {
     'Access-Control-Allow-Methods': 'GET,OPTIONS,PUT,POST,DELETE',
     'Access-Control-Allow-Headers': 'Content-Type, X-User-ID, X-User-Id'
   };
+}
+
+function cleanMarkdownFormatting(text) {
+  if (!text) return text;
+
+  // Remove markdown bold/italic asterisks and underscores
+  let cleaned = text.replace(/\*\*\*(.+?)\*\*\*/g, '$1'); // Bold+italic
+  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1'); // Bold
+  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1'); // Italic
+  cleaned = cleaned.replace(/___(.+?)___/g, '$1'); // Bold+italic
+  cleaned = cleaned.replace(/__(.+?)__/g, '$1'); // Bold
+  cleaned = cleaned.replace(/_(.+?)_/g, '$1'); // Italic
+
+  // Remove markdown headers (## Header -> Header)
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+
+  // Remove markdown code blocks (```code``` -> code)
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
+    return match.replace(/```\w*\n?/g, '').replace(/```/g, '');
+  });
+
+  // Remove inline code backticks (`code` -> code)
+  cleaned = cleaned.replace(/`(.+?)`/g, '$1');
+
+  return cleaned;
 }
 
 function sanitizePath(requestPath) {
