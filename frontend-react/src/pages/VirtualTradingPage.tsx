@@ -19,12 +19,14 @@ import {
     DialogActions,
     Alert,
 } from '@mui/material';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AccountBalance, TrendingUp, TrendingDown, Refresh, ShoppingCart, AttachMoney } from '@mui/icons-material';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { VirtualPortfolio, VirtualHolding } from '../types';
+import { VirtualPortfolio, VirtualHolding, Coin } from '../types';
 import { getVirtualPortfolio, resetVirtualPortfolio } from '../virtualTradingApi';
+import { getListings } from '../api';
+import { getBatchQuotes } from '../stockApi';
 import { useAuth } from '../context/AuthContext';
 import { usePortfolio } from '../state/PortfolioContext';
 import { formatCurrency, convert } from '../utils';
@@ -36,6 +38,12 @@ export default function VirtualTradingPage() {
     const queryClient = useQueryClient();
     const [tradingModalOpen, setTradingModalOpen] = useState(false);
     const [resetDialogOpen, setResetDialogOpen] = useState(false);
+
+    // Fetch crypto listings for price data
+    const { data: cryptoData } = useQuery({
+        queryKey: ['listings'],
+        queryFn: getListings,
+    });
 
     // Fetch virtual portfolio
     const { data: portfolioData, isLoading } = useQuery({
@@ -50,6 +58,18 @@ export default function VirtualTradingPage() {
         transactions: [],
     };
 
+    // Get stock symbols for fetching quotes
+    const stockSymbols = portfolio.holdings
+        .filter(h => h.assetType === 'stock')
+        .map(h => h.symbol);
+
+    // Fetch stock quotes
+    const { data: stockQuotes } = useQuery({
+        queryKey: ['stock-quotes-batch', stockSymbols],
+        queryFn: () => getBatchQuotes(stockSymbols),
+        enabled: stockSymbols.length > 0,
+    });
+
     // Reset portfolio mutation
     const resetMutation = useMutation({
         mutationFn: () => resetVirtualPortfolio(user?.uid),
@@ -59,12 +79,28 @@ export default function VirtualTradingPage() {
         },
     });
 
-    // Calculate portfolio value
-    const holdingsValue = portfolio.holdings.reduce((sum, holding) => {
-        // For now, we'll need real-time prices from the main dashboard
-        // This will be populated when we integrate with actual price data
-        return sum;
-    }, 0);
+    const coins: Coin[] = cryptoData?.data || [];
+
+    // Calculate portfolio value with real-time prices
+    const holdingsValue = useMemo(() => {
+        return portfolio.holdings.reduce((sum, holding) => {
+            let currentPriceINR = 0;
+
+            if (holding.assetType === 'crypto') {
+                const coin = coins.find(c => String(c.id) === String(holding.assetId));
+                if (coin?.quote?.USD?.price) {
+                    currentPriceINR = convert(coin.quote.USD.price, 'USD', 'INR', fxRates);
+                }
+            } else {
+                const quote = stockQuotes?.[holding.symbol];
+                if (quote?.c) {
+                    currentPriceINR = convert(quote.c, 'USD', 'INR', fxRates);
+                }
+            }
+
+            return sum + (currentPriceINR * holding.quantity);
+        }, 0);
+    }, [portfolio.holdings, coins, stockQuotes, fxRates]);
 
     const totalValue = portfolio.balance + holdingsValue;
     const totalPnL = totalValue - 1000000; // Initial balance was 1M
@@ -191,10 +227,23 @@ export default function VirtualTradingPage() {
                                 </TableHead>
                                 <TableBody>
                                     {portfolio.holdings.map((holding) => {
-                                        const currentPrice = 0; // TODO: Get real-time price
-                                        const currentValue = currentPrice * holding.quantity;
+                                        let currentPriceINR = 0;
+
+                                        if (holding.assetType === 'crypto') {
+                                            const coin = coins.find(c => String(c.id) === String(holding.assetId));
+                                            if (coin?.quote?.USD?.price) {
+                                                currentPriceINR = convert(coin.quote.USD.price, 'USD', 'INR', fxRates);
+                                            }
+                                        } else {
+                                            const quote = stockQuotes?.[holding.symbol];
+                                            if (quote?.c) {
+                                                currentPriceINR = convert(quote.c, 'USD', 'INR', fxRates);
+                                            }
+                                        }
+
+                                        const currentValue = currentPriceINR * holding.quantity;
                                         const pnl = currentValue - holding.totalCost;
-                                        const pnlPct = (pnl / holding.totalCost) * 100;
+                                        const pnlPct = holding.totalCost > 0 ? (pnl / holding.totalCost) * 100 : 0;
                                         const isPositive = pnl >= 0;
 
                                         return (
@@ -214,7 +263,7 @@ export default function VirtualTradingPage() {
                                                 </TableCell>
                                                 <TableCell align="right">{holding.quantity}</TableCell>
                                                 <TableCell align="right">₹{holding.avgBuyPrice.toLocaleString()}</TableCell>
-                                                <TableCell align="right">₹{currentPrice.toLocaleString()}</TableCell>
+                                                <TableCell align="right">₹{currentPriceINR.toLocaleString()}</TableCell>
                                                 <TableCell align="right">
                                                     <Typography fontWeight={600}>₹{currentValue.toLocaleString()}</Typography>
                                                 </TableCell>

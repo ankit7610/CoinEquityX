@@ -114,7 +114,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                 symbol: coin.symbol,
                 name: coin.name,
                 type: 'crypto',
-                data: coin,
+                quote: coin.quote, // Store quote data
             }));
         } else {
             const stocks = stockData || [];
@@ -123,24 +123,27 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                 symbol: stock.symbol,
                 name: stock.description || stock.displaySymbol,
                 type: 'stock',
-                data: stock,
             }));
         }
     }, [assetType, cryptoData, stockData]);
 
     // Validation
     const canTrade = useMemo(() => {
-        if (!selectedAsset || !quantity || Number(quantity) <= 0) return false;
+        if (!selectedAsset || !quantity || Number(quantity) <= 0 || (currentPrice || 0) <= 0) return false;
 
         if (tradeType === 'buy') {
             return total <= balance;
         } else {
             return Number(quantity) <= availableQuantity;
         }
-    }, [selectedAsset, quantity, tradeType, total, balance, availableQuantity]);
+    }, [selectedAsset, quantity, tradeType, total, balance, availableQuantity, currentPrice]);
 
     const validationMessage = useMemo(() => {
         if (!selectedAsset || !quantity) return '';
+
+        if ((currentPrice || 0) <= 0) {
+            return 'Unable to fetch current price. Please try again or select a different asset.';
+        }
 
         if (tradeType === 'buy' && total > balance) {
             return `Insufficient balance. You need ₹${total.toLocaleString()} but have ₹${balance.toLocaleString()}`;
@@ -151,7 +154,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
         }
 
         return '';
-    }, [tradeType, selectedAsset, quantity, total, balance, availableQuantity]);
+    }, [tradeType, selectedAsset, quantity, total, balance, availableQuantity, currentPrice]);
 
     const handleClose = () => {
         setSelectedAsset(null);
