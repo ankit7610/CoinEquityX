@@ -17,7 +17,11 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    { id: uid(), role: 'assistant', text: 'Hi! Ask me anything about crypto/markets, the dashboard, or your portfolio.' }
+    {
+      id: uid(),
+      role: 'assistant',
+      text: 'Hi! I\'m your Crypto Pulse assistant. I can help you with:\n\n• Market data and crypto/stock prices\n• How to use dashboard features\n• Portfolio management tips\n• Navigating the app\n\nWhat would you like to know?'
+    }
   ]);
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);

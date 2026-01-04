@@ -42,6 +42,10 @@ function createMockFetch() {
     }
     if (target.includes('generativelanguage.googleapis.com') && target.includes(':generateContent')) {
       assert.equal(method, 'POST');
+      const body = JSON.parse(options.body || '{}');
+      // Verify system instruction is included
+      assert.ok(body.systemInstruction, 'System instruction should be present');
+      assert.ok(body.systemInstruction.parts, 'System instruction should have parts');
       return jsonResponse({
         candidates: [
           {
