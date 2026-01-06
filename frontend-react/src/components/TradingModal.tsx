@@ -284,6 +284,30 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                                         )}
                                     </Box>
                                 );
+                            } else if (option.type === 'crypto') {
+                                const priceUSD = option.quote?.USD?.price || 0;
+                                const priceInCurrency = convert(priceUSD, 'USD', 'INR', fxRates) || 0;
+                                return (
+                                    <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5 }}>
+                                        <Box sx={{
+                                            width: 36, height: 36, borderRadius: '10px',
+                                            background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontWeight: 700, fontSize: '0.75rem',
+                                        }}>
+                                            {option.symbol?.slice(0, 2).toUpperCase()}
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{option.symbol}</Typography>
+                                        </Box>
+                                        {priceUSD > 0 && (
+                                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                ₹{priceInCurrency.toLocaleString()}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                );
                             }
                             return <Box component="li" {...props}>{option.name} ({option.symbol})</Box>;
                         }}
