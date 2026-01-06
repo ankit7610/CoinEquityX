@@ -21,12 +21,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CurrencyBitcoin, ShowChart, TrendingUp, TrendingDown, Close, ShoppingCart } from '@mui/icons-material';
 import { getListings } from '../api';
-import { getStockSymbols, getStockQuote } from '../stockApi';
+import { getStockSymbols, getStockQuote, getBatchQuotes } from '../stockApi';
 import { executeTrade } from '../virtualTradingApi';
 import { VirtualHolding, Coin } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency, convert } from '../utils';
 import { usePortfolio } from '../state/PortfolioContext';
+
+// Popular stocks for dropdown prices
+const popularSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'WMT', 'JNJ', 'PG', 'BAC', 'DIS', 'NFLX', 'ORCL', 'CSCO', 'INTC', 'AMD', 'CRM'];
 
 interface TradingModalProps {
     open: boolean;
@@ -58,6 +61,14 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
         queryKey: ['stock-symbols'],
         queryFn: () => getStockSymbols('US'),
         enabled: assetType === 'stock',
+    });
+
+    // Fetch popular stock quotes
+    const { data: popularQuotes = {} } = useQuery({
+        queryKey: ['stock-quotes-popular'],
+        queryFn: () => getBatchQuotes(popularSymbols),
+        enabled: assetType === 'stock',
+        staleTime: 24 * 60 * 60 * 1000,
     });
 
     // Get current price for selected asset
@@ -119,14 +130,21 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
             }));
         } else {
             const stocks = stockData || [];
-            return stocks.slice(0, 100).map((stock: any) => ({
-                id: stock.symbol,
-                symbol: stock.symbol,
-                name: stock.description || stock.displaySymbol,
-                type: 'stock',
-            }));
+            const options = stocks.map((stock: any) => {
+                const quote = popularQuotes[stock.symbol];
+                const price = quote?.c || 0;
+                return {
+                    id: stock.symbol,
+                    symbol: stock.symbol,
+                    name: stock.description || stock.displaySymbol,
+                    type: 'stock',
+                    price,
+                };
+            });
+            // Sort by price descending and limit to 100
+            return options.sort((a, b) => b.price - a.price).slice(0, 100);
         }
-    }, [assetType, cryptoData, stockData]);
+    }, [assetType, cryptoData, stockData, popularQuotes]);
 
     // Validation
     const canTrade = useMemo(() => {
@@ -242,6 +260,57 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                         onChange={(_, nv) => setSelectedAsset(nv)}
                         options={assetOptions}
                         getOptionLabel={(o) => `${o.name} (${o.symbol})`}
+                        renderOption={(props, option) => {
+                            if (option.type === 'stock') {
+                                const priceInCurrency = convert(option.price || 0, 'USD', 'INR', fxRates) || 0;
+                                return (
+                                    <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5 }}>
+                                        <Box sx={{
+                                            width: 36, height: 36, borderRadius: '10px',
+                                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontWeight: 700, fontSize: '0.75rem',
+                                        }}>
+                                            {option.symbol?.slice(0, 2).toUpperCase()}
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{option.symbol}</Typography>
+                                        </Box>
+                                        {option.price > 0 && (
+                                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                ₹{priceInCurrency.toLocaleString()}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                );
+                            } else if (option.type === 'crypto') {
+                                const priceUSD = option.quote?.USD?.price || 0;
+                                const priceInCurrency = convert(priceUSD, 'USD', 'INR', fxRates) || 0;
+                                return (
+                                    <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5 }}>
+                                        <Box sx={{
+                                            width: 36, height: 36, borderRadius: '10px',
+                                            background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontWeight: 700, fontSize: '0.75rem',
+                                        }}>
+                                            {option.symbol?.slice(0, 2).toUpperCase()}
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{option.symbol}</Typography>
+                                        </Box>
+                                        {priceUSD > 0 && (
+                                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                ₹{priceInCurrency.toLocaleString()}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                );
+                            }
+                            return <Box component="li" {...props}>{option.name} ({option.symbol})</Box>;
+                        }}
                         renderInput={(params) => (
                             <TextField
                                 {...params}
