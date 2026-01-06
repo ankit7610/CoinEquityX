@@ -419,8 +419,8 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
 
                     <Box sx={{ p: 2, borderRadius: 2, background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 600, letterSpacing: 1 }}>AVAILABLE CASH</Typography>
-                            <Typography variant="h6" fontWeight={800}>₹{balance.toLocaleString()}</Typography>
+                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 800, letterSpacing: 1 }}>AVAILABLE CASH</Typography>
+                            <Typography variant="h6" fontWeight={800} color="white">₹{balance.toLocaleString()}</Typography>
                         </Stack>
                     </Box>
 
