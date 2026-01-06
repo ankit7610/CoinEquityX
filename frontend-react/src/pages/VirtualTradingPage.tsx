@@ -191,47 +191,137 @@ export default function VirtualTradingPage() {
                             sx={{
                                 background: (theme) =>
                                     theme.palette.mode === 'dark'
-                                        ? 'linear-gradient(145deg, rgba(18, 18, 26, 0.95) 0%, rgba(30, 30, 45, 0.95) 100%)'
-                                        : 'linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                                border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(109, 40, 217, 0.08)'}`,
-                                borderRadius: 2,
+                                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)'
+                                        : 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)',
+                                backdropFilter: 'blur(20px)',
+                                border: (theme) => theme.palette.mode === 'dark'
+                                    ? '1px solid rgba(139, 92, 246, 0.3)'
+                                    : '1px solid rgba(139, 92, 246, 0.2)',
+                                borderRadius: 3,
+                                boxShadow: (theme) => theme.palette.mode === 'dark'
+                                    ? '0 8px 32px rgba(139, 92, 246, 0.15)'
+                                    : '0 4px 20px rgba(139, 92, 246, 0.1)',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: (theme) => theme.palette.mode === 'dark'
+                                        ? '0 12px 40px rgba(139, 92, 246, 0.25)'
+                                        : '0 8px 30px rgba(139, 92, 246, 0.15)',
+                                },
+                                '&::before': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    height: '4px',
+                                    background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 50%, #8b5cf6 100%)',
+                                    backgroundSize: '200% 100%',
+                                    animation: 'gradient-shift 3s ease infinite',
+                                },
+                                '@keyframes gradient-shift': {
+                                    '0%': { backgroundPosition: '0% 50%' },
+                                    '50%': { backgroundPosition: '100% 50%' },
+                                    '100%': { backgroundPosition: '0% 50%' },
+                                },
                             }}
                         >
-                            <CardContent sx={{ p: 3 }}>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                    <Stack direction="row" alignItems="center" spacing={1.5}>
-                                        <AddCircle sx={{ color: 'primary.main', fontSize: 28 }} />
-                                        <Typography variant="h6" fontWeight={700}>
-                                            Execute Virtual Trade
-                                        </Typography>
+                            <CardContent sx={{ p: 4 }}>
+                                <Stack spacing={3}>
+                                    <Stack direction="row" alignItems="center" spacing={2}>
+                                        <Box sx={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: 2.5,
+                                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)',
+                                        }}>
+                                            <ShoppingCart sx={{ color: 'white', fontSize: 26 }} />
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="h5" fontWeight={800} sx={{
+                                                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                                                backgroundClip: 'text',
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent',
+                                                letterSpacing: '-0.02em',
+                                            }}>
+                                                Execute Virtual Trade
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
+                                                Trade crypto & stocks with virtual balance
+                                            </Typography>
+                                        </Box>
                                     </Stack>
-                                    <Stack direction="row" spacing={2}>
+
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                                         <Button
                                             variant="contained"
-                                            startIcon={<ShoppingCart />}
+                                            size="large"
+                                            startIcon={<AddCircle />}
                                             onClick={() => setTradingModalOpen(true)}
                                             sx={{
+                                                flex: 1,
+                                                py: 1.75,
+                                                px: 4,
                                                 background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                                                '&:hover': { background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' },
                                                 borderRadius: 2,
-                                                px: 3,
+                                                fontWeight: 700,
+                                                fontSize: '1rem',
+                                                textTransform: 'none',
+                                                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.4)',
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: '0 6px 20px rgba(139, 92, 246, 0.5)',
+                                                },
+                                                '&:active': {
+                                                    transform: 'translateY(0px)',
+                                                },
                                             }}
                                         >
-                                            Buy / Sell Assets
+                                            Start Trading
                                         </Button>
                                         <Button
                                             variant="outlined"
+                                            size="large"
                                             startIcon={<Refresh />}
                                             onClick={() => setResetDialogOpen(true)}
-                                            color="error"
-                                            sx={{ borderRadius: 2 }}
+                                            sx={{
+                                                py: 1.75,
+                                                px: 3,
+                                                borderRadius: 2,
+                                                fontWeight: 700,
+                                                fontSize: '0.95rem',
+                                                textTransform: 'none',
+                                                borderWidth: 2,
+                                                borderColor: 'error.main',
+                                                color: 'error.main',
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    borderWidth: 2,
+                                                    borderColor: 'error.dark',
+                                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                                                    transform: 'translateY(-2px)',
+                                                },
+                                                '&:active': {
+                                                    transform: 'translateY(0px)',
+                                                },
+                                            }}
                                         >
-                                            Reset
+                                            Reset Portfolio
                                         </Button>
                                     </Stack>
                                 </Stack>
                             </CardContent>
                         </Card>
+
 
                         {/* Holdings Table */}
                         <Card sx={{
