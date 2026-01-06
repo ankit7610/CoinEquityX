@@ -200,8 +200,14 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
             PaperProps={{
                 sx: {
                     borderRadius: 3,
-                    background: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+                    background: (theme) => theme.palette.mode === 'dark'
+                        ? 'rgba(15, 23, 42, 0.98)'
+                        : '#ffffff',
                     backgroundImage: 'none',
+                    boxShadow: (theme) => theme.palette.mode === 'dark'
+                        ? '0 10px 40px rgba(0, 0, 0, 0.4)'
+                        : '0 10px 40px rgba(0, 0, 0, 0.1)',
+                    backdropFilter: 'blur(10px)',
                 }
             }}
         >
@@ -229,17 +235,50 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
 
             <DialogContent sx={{ p: 3 }}>
                 <Stack spacing={3} sx={{ mt: 1 }}>
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1.5}>
                         <ToggleButtonGroup
                             value={tradeType}
                             exclusive
                             onChange={(_, v) => v && setTradeType(v)}
                             fullWidth
                             size="small"
-                            sx={{ '& .MuiToggleButton-root': { fontWeight: 700, borderRadius: 2 } }}
+                            sx={{
+                                '& .MuiToggleButton-root': {
+                                    fontWeight: 700,
+                                    borderRadius: 2,
+                                    py: 1.25,
+                                    transition: 'all 0.2s',
+                                }
+                            }}
                         >
-                            <ToggleButton value="buy" sx={{ color: 'success.main', '&.Mui-selected': { bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' } } }}>BUY</ToggleButton>
-                            <ToggleButton value="sell" sx={{ color: 'error.main', '&.Mui-selected': { bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } } }}>SELL</ToggleButton>
+                            <ToggleButton
+                                value="buy"
+                                sx={{
+                                    color: 'success.main',
+                                    '&.Mui-selected': {
+                                        bgcolor: 'success.main',
+                                        color: 'white',
+                                        boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+                                        '&:hover': { bgcolor: 'success.dark' }
+                                    }
+                                }}
+                            >
+                                BUY
+                            </ToggleButton>
+                            <ToggleButton
+                                value="sell"
+                                sx={{
+                                    color: 'error.main',
+                                    '&.Mui-selected': {
+                                        bgcolor: 'error.main',
+                                        color: 'white',
+                                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                                        '&:hover': { bgcolor: 'error.dark' }
+                                    }
+                                }}
+                            >
+                                SELL
+                            </ToggleButton>
                         </ToggleButtonGroup>
 
                         <ToggleButtonGroup
@@ -248,7 +287,19 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                             onChange={(_, v) => v && setAssetType(v)}
                             fullWidth
                             size="small"
-                            sx={{ '& .MuiToggleButton-root': { fontWeight: 700, borderRadius: 2 } }}
+                            sx={{
+                                '& .MuiToggleButton-root': {
+                                    fontWeight: 700,
+                                    borderRadius: 2,
+                                    py: 1.25,
+                                    transition: 'all 0.2s',
+                                    '&.Mui-selected': {
+                                        bgcolor: 'primary.main',
+                                        color: 'white',
+                                        boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                                    }
+                                }
+                            }}
                         >
                             <ToggleButton value="crypto">CRYPTO</ToggleButton>
                             <ToggleButton value="stock">STOCK</ToggleButton>
@@ -318,7 +369,7 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                                 placeholder="Search..."
                                 InputProps={{
                                     ...params.InputProps,
-                                    sx: { borderRadius: 2 }
+                                    sx: { borderRadius: 2.5 }
                                 }}
                             />
                         )}
@@ -333,19 +384,32 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                         fullWidth
                         helperText={tradeType === 'sell' && selectedAsset ? `Available: ${availableQuantity} ${selectedAsset.symbol}` : ''}
                         InputProps={{
-                            sx: { borderRadius: 2 },
+                            sx: { borderRadius: 2.5 },
                             inputProps: { min: 0, step: assetType === 'crypto' ? '0.0001' : '1' }
                         }}
                     />
 
                     {selectedAsset && (
-                        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderStyle: 'dashed' }}>
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: 2.5,
+                                borderRadius: 2.5,
+                                bgcolor: (theme) => theme.palette.mode === 'dark'
+                                    ? 'rgba(139, 92, 246, 0.08)'
+                                    : 'rgba(139, 92, 246, 0.04)',
+                                borderColor: (theme) => theme.palette.mode === 'dark'
+                                    ? 'rgba(139, 92, 246, 0.3)'
+                                    : 'rgba(139, 92, 246, 0.2)',
+                                borderWidth: 1.5,
+                            }}
+                        >
                             <Stack spacing={1.5}>
                                 <Stack direction="row" justifyContent="space-between">
-                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>Market Price</Typography>
+                                    <Typography variant="body2" color="text.secondary" fontWeight={600}>Market Price</Typography>
                                     <Typography variant="body2" fontWeight={700}>₹{(currentPrice || 0).toLocaleString()}</Typography>
                                 </Stack>
-                                <Stack direction="row" justifyContent="space-between" sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                                <Stack direction="row" justifyContent="space-between" sx={{ pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
                                     <Typography variant="subtitle1" fontWeight={800}>{tradeType === 'buy' ? 'Total Cost' : 'Proceeds'}</Typography>
                                     <Typography variant="subtitle1" fontWeight={800} color="primary.main">₹{total.toLocaleString()}</Typography>
                                 </Stack>
@@ -373,12 +437,23 @@ export function TradingModal({ open, onClose, balance, holdings }: TradingModalP
                     onClick={handleTrade}
                     disabled={!canTrade || tradeMutation.isPending}
                     sx={{
-                        py: 1.5,
-                        borderRadius: 2,
+                        py: 1.75,
+                        borderRadius: 2.5,
                         fontWeight: 800,
-                        background: tradeType === 'buy' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
-                        '&:hover': { transform: 'scale(1.02)' },
+                        fontSize: '1rem',
+                        background: tradeType === 'buy'
+                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                            : 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                        boxShadow: tradeType === 'buy'
+                            ? '0 4px 12px rgba(34, 197, 94, 0.3)'
+                            : '0 4px 12px rgba(239, 68, 68, 0.3)',
                         transition: 'all 0.2s',
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: tradeType === 'buy'
+                                ? '0 6px 16px rgba(34, 197, 94, 0.4)'
+                                : '0 6px 16px rgba(239, 68, 68, 0.4)',
+                        },
                     }}
                 >
                     {tradeMutation.isPending ? <CircularProgress size={24} color="inherit" /> : `CONFIRM ${tradeType.toUpperCase()}`}
